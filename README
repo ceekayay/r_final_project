@@ -1,0 +1,13 @@
+ERHS 535 Final Project
+Team members: 
+Laura Calvimontes, Yuting Chen, Marcel Jardeleza, Caroline Kern-Allely
+
+The data we are using comes from (Project FeederWatch)[https://feederwatch.org/explore/raw-dataset-requests/].
+
+**FeederWatch** is citizen science survey of birds that visit backyards, nature centers, 
+and community areas across North America. Birds are survey from November to April.
+
+The data shows which bird species visit feeders, as well as location specific information 
+about the feeder environment.
+
+Project FeederWatch is operated by the Cornell Lab of Ornithology and Birds Canada.

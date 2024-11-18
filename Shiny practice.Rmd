@@ -1,0 +1,74 @@
+---
+title: "Shiny testing"
+author: "Caroline Kern-Allely"
+date: "2024-11-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, message = FALSE}
+library("tidyverse")
+library("shiny")
+library("leaflet")
+library("readr")
+
+```
+
+```{r data, message = FALSE}
+species_data <- read_csv("data/PFW_2021_public.csv")
+site_data <- read_csv("data/PFW_count_site_data_public_2021.csv")
+
+species_data <- species_data %>%
+  mutate(date = as.Date(paste(Year, Month, Day, sep = "-")))
+
+species_names <- read_ec("data/FeederWatch_Data_Dictionary.xlsx", sheet = "Species Codes")
+
+
+)
+```
+
+```{r shiny_test}
+ui <- fluidPage(
+  titlePanel("Bird Sighting Map"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("species", "Choose Bird Species:",
+                  choices = 
+                    unique(species_data$species_code))
+    ),
+    mainPanel(
+      leafletOutput("map")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+filtered_data <- reactive({
+  species_data %>% 
+    filter(species_code == input$species)
+  })
+  
+output$map <- renderLeaflet({
+data <- filtered_data()
+    
+leaflet(data) %>%
+  addTiles() %>%
+  addCircleMarkers(
+             lng = ~ longitude,
+             lat = ~ latitude,
+             radius = ~ how_many,
+             color = "green",
+             fillOpacity = 0.7,
+             popup = ~ paste("<b>Number of birds:</b>", how_many)
+      )
+  })
+  
+}
+
+shinyApp(ui = ui, server = server)
+
+```

@@ -1,0 +1,151 @@
+---
+title: "Map_plot"
+author: "Yuting Deng"
+date: "2024-11-18"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(readxl)
+library(dplyr)
+library(broom)
+library(purrr)
+library(tidyr)
+library(forcats)
+library(ggplot2)
+library(scales)
+library(tigris)
+library(sf)
+library(forcats)
+library(leaflet)
+```
+
+```{r}
+species_names <- read_excel("./big_data/FeederWatch_Data_Dictionary.xlsx", sheet = "Species Codes", skip = 3)
+
+pfw <- readr::read_csv("./big_data/PFW_all_2021_2024_May2024_Public.csv") %>% 
+  mutate(date = as.Date(paste(Year, Month, Day, sep = "-"))) %>% 
+  left_join(species_names, join_by("SPECIES_CODE" == "species_code"))
+
+pfw_2021 = pfw %>% filter(Year == "2021")
+dplyr::glimpse(pfw_2021)
+```
+
+```{r}
+leaflet(pfw_2021 %>% filter(SPECIES_CODE == "blujay")) %>%
+  addTiles() %>%
+  addCircleMarkers(
+             lng = ~ LONGITUDE,
+             lat = ~ LATITUDE,
+             radius = ~ HOW_MANY,
+             color = "grey",
+             fillOpacity = 0.4,
+             popup = ~ paste("<b>Number of birds:</b>", HOW_MANY)
+      )
+```
+
+```{r participant map}
+# Filter unique locations
+unique_locations <- pfw_2021 %>%
+  select(LATITUDE, LONGITUDE) %>%
+  distinct()
+
+leaflet(unique_locations) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    ~LONGITUDE, ~LATITUDE,
+    radius = 0.5,
+    color = "#21918c",
+    fillOpacity = 0.6,
+    popup = ~paste("Lat:", LATITUDE, "Lon:", LONGITUDE)
+  ) %>%
+  setView(lng = mean(unique_locations$LONGITUDE, na.rm = TRUE),
+          lat = mean(unique_locations$LATITUDE, na.rm = TRUE),
+          zoom = 4)
+```
+
+
+```{r species richness by state}
+# Calculate the number of unique species for each state
+state_species_count <- pfw_2021 %>%
+  group_by(SUBNATIONAL1_CODE) %>%
+  summarize(
+    unique_species = n_distinct(SPECIES_CODE),
+    .groups = "drop"
+  )
+
+# Get state boundaries using tigris
+options(tigris_use_cache = TRUE) # Cache the shapefiles for faster loading
+state_boundaries <- states(cb = TRUE) # Use cartographic boundary shapefiles for simplicity
+
+# Ensure matching column names for merging
+state_boundaries <- state_boundaries %>%
+  mutate(SUBNATIONAL1_CODE = paste0("US-", SUBNATIONAL1_CODE))
+
+# Merge species count with state boundaries
+state_boundaries <- state_boundaries %>%
+  left_join(state_species_count, by = "SUBNATIONAL1_CODE")
+
+# Create a color palette for unique species count
+palette <- colorNumeric(
+  palette = "YlGnBu",
+  domain = state_boundaries$unique_species
+)
+```
+
+```{r map with two layers}
+leaflet() %>%
+  addTiles() %>%
+  # Layer 1: Unique observation points
+  addCircleMarkers(
+    data = unique_locations,
+    ~LONGITUDE, ~LATITUDE,
+    radius = 0.5,
+    color = "#21918c",
+    fillOpacity = 0.6,
+    popup = ~paste("Lat:", LATITUDE, "Lon:", LONGITUDE),
+    group = "Participant Observation Points"
+  ) %>%
+  # Layer 2: Fill states by unique species count
+  addPolygons(
+    data = state_boundaries,
+    fillColor = ~palette(unique_species),
+    weight = 1,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlight = highlightOptions(
+      weight = 2,
+      color = "#666",
+      dashArray = "",
+      fillOpacity = 0.9,
+      bringToFront = TRUE
+    ),
+    label = ~paste0(NAME, ": ", unique_species, " unique species"),
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "3px 8px"),
+      textsize = "15px",
+      direction = "auto"
+    ),
+    group = "Species Count by State"
+  ) %>%
+  # Add legend for species count
+  addLegend(
+    pal = palette,
+    values = state_boundaries$unique_species,
+    title = "Unique Species Count",
+    position = "bottomright",
+    group = "Species Count by State"
+  ) %>%
+  # Add layer control
+  addLayersControl(
+    overlayGroups = c("Participant Observation Points", "Species Count by State"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+```
+

@@ -8,3 +8,68 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+```{r libraries, message = FALSE}
+library("tidyverse")
+library("readxl")
+library("lubridate")
+library("purrr")
+library("forcats")
+library("stringr")
+library("ggplot2")
+library("scales")
+library("broom")
+library("ggfortify")
+library("stringr")
+library("ggthemes")
+library("tigris")
+library("leaflet")
+library("viridis")
+```
+
+```{r data, message = FALSE}
+species_data <- read_csv("data/PFW_2021_public.csv")
+site_data <- read_csv("data/PFW_count_site_data_public_2021.csv")
+
+species_data <- species_data %>%
+  mutate(date = as.Date(paste(Year, Month, Day, sep = "-")))
+
+test <- species_data %>%
+  filter(species_code == "acowoo")
+
+test_df <- species_data %>%
+  group_by(date, species_code) %>%
+  summarize(total = sum(how_many))
+
+eursta_df <- species_data %>%
+  filter(species_code == "eursta") %>%
+  group_by(date) %>%
+  summarize(count = sum(how_many))
+
+eursta_df %>%
+  ggplot(aes(x = date, y = count)) +
+  geom_line() +
+  labs(x = "Date",
+       y = "Total Counts") +
+  theme_minimal()
+
+test_df %>%
+  filter(species_code == "acowoo") %>%
+  ggplot(aes(x = date, y = total)) +
+  geom_line() +
+  labs(title = "Bird Count by Species", 
+       x = "Date",
+       y = "Total Counts") +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+```
+
+```{r leaflet}
+leaflet() %>%
+  addTiles() %>%
+  addMarkers(data = test, 
+             lng = ~ longitude, # need tilda to have it go to dataset
+             lat = ~ latitude,
+             popup = ~ paste("<b>Number of birds:</b>", how_many)) #formatting with html, can also put graphs, leaflets, images, inside marker popup
+```

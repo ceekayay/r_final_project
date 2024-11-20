@@ -84,11 +84,12 @@ state_boundaries <- states(cb = TRUE) # Use cartographic boundary shapefiles for
 
 # Ensure matching column names for merging
 state_boundaries <- state_boundaries %>%
-  mutate(SUBNATIONAL1_CODE = paste0("US-", SUBNATIONAL1_CODE))
+  mutate(SUBNATIONAL1_CODE = paste0("US-", STUSPS))
 
 # Merge species count with state boundaries
 state_boundaries <- state_boundaries %>%
-  left_join(state_species_count, by = "SUBNATIONAL1_CODE")
+  left_join(state_species_count, by = "SUBNATIONAL1_CODE")%>% 
+  filter(!is.na(unique_species))
 
 # Create a color palette for unique species count
 palette <- colorNumeric(

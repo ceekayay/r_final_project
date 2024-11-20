@@ -3,3 +3,4 @@
 .RData
 .Ruserdata
 big_data/*
+.DS_Store

@@ -31,7 +31,10 @@ pfw <- readr::read_csv("./big_data/PFW_all_2021_2024_May2024_Public.csv") %>%
   mutate(date = as.Date(paste(Year, Month, Day, sep = "-"))) %>% 
   left_join(species_names, join_by("SPECIES_CODE" == "species_code"))
 
-pfw_2021 = pfw %>% filter(Year == "2021")
+pfw_small = pfw %>% select(LONGITUDE, LATITUDE, HOW_MANY, SUBNATIONAL1_CODE, SPECIES_CODE, Year)
+write_csv(pfw_small, "./big_data/pfw_2021_2024_smaller.csv")
+
+pfw_2021 = pfw_small %>% filter(Year == "2021")
 dplyr::glimpse(pfw_2021)
 ```
 
@@ -101,6 +104,12 @@ palette <- colorNumeric(
 ```{r map with two layers}
 leaflet() %>%
   addTiles() %>%
+  # Set initial view to lower 48 states
+  setView(
+    lng = -100, # Center longitude (approximately center of the US)
+    lat = 50,  # Center latitude (approximately center of the US)
+    zoom = 3     # Adjust zoom level to cover the lower 48 states
+  ) %>%
   # Layer 1: Unique observation points
   addCircleMarkers(
     data = unique_locations,

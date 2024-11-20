@@ -25,18 +25,14 @@ sightings_data <- read_csv("data/PFW_2021_public.csv") %>%
 species_names <- read_excel("data/Species_Codes.xlsx") %>%
   rename_all(tolower)
 
-pfw <- readr::read_csv("./big_data/PFW_all_2021_2024_May2024_Public.csv") %>% 
-  mutate(date = as.Date(paste(Year, Month, Day, sep = "-"))) %>%
-  left_join(species_names, by = "species_code") %>%
-  mutate(common_name = primary_com_name)
-  
-
-## NEED TO CLEAN DATA SO ALL THE NAMES THAT ARE SIMILAR ARE COMBINED eg rock pigeon + rock pigeon (feral)
-
 test_df <- species_data %>%
   group_by(date, species_code, common_name) %>%
   summarize(total = sum(how_many))
 
+pfw <- readr::read_csv("./big_data/PFW_all_2021_2024_May2024_Public.csv") %>% 
+  mutate(date = as.Date(paste(Year, Month, Day, sep = "-"))) %>%
+  left_join(species_names, by = "species_code") %>%
+  mutate(common_name = primary_com_name)
 ```
 Column
 -----------------------------

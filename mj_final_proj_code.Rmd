@@ -1,0 +1,37 @@
+---
+title: "r_final_project_mj"
+author: "MarcelJardeleza"
+date: "2024-11-21"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## libraries
+```{packages}
+library(tidyverse)
+library(ggplot2)
+```
+
+
+
+## loading data
+```{loading data, echo=FALSE}
+plot(pressure)
+
+
+
+```
+
+
+
+## working on histogram
+```{working on graph}
+
+
+```
+
+
+

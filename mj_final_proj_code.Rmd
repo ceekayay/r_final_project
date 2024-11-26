@@ -71,7 +71,7 @@ pfw_small %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 
-
+#trying to use re-order
 pfw_small %>% 
   group_by(SUBNATIONAL1_CODE) %>% 
   filter(SUBNATIONAL1_CODE == "US-MN" ,
@@ -79,8 +79,6 @@ pfw_small %>%
   ggplot(aes(x=reorder(SCI_NAME, -HOW_MANY, .desc = TRUE))) +
   geom_histogram(stat="count") +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
-
-
 
 
 
@@ -95,7 +93,7 @@ pfw_small %>%
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 
 
-
+#using fct_reorder
 pfw_small %>% 
   group_by(SUBNATIONAL1_CODE) %>% 
   filter(SUBNATIONAL1_CODE == "US-MN" ,

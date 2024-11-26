@@ -1,0 +1,72 @@
+---
+title: "Histogram"
+author: "Caroline Kern-Allely"
+date: "2024-11-26"
+output: html_document
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+library(tidyverse)
+library(ggplot2)
+library("ggthemes")
+library(package = "readr")
+library(readxl)
+library(shiny)
+library(usmap) 
+```
+
+You'll have to add in this if the original giant data doesn't have a state column, but essentially I just made a State column by splitting the national code in the small dataset you had made me and then used state.name to match the abbreviation to the fullname so I could use that in my dropdown menu.
+
+```{r data}
+pfw <- read_csv("C:/Users/ckern/Documents/ERHS 535/pfw_2021_2024_smaller_mj.csv") %>%
+  mutate(State = str_split(SUBNATIONAL1_CODE, "-",
+                           simplify = TRUE)[, 2],
+          State = state.name[match(State, state.abb)])
+```
+
+Next part is the actual shiny.
+
+Essentially if it doesn't work with the actual dataset, the only places to really check is the names of variables in the dataset and then find where I used `State` and `Year` and just replace them. Some capitalization stuff may be tricky so let me know if it needs to be updated with the correct variables from the full dataset, it worked for the small one!
+```{r histo}
+histogram_ui <- fillPage(
+  fillCol(flex = c(NA, 1),
+  inputPanel(
+      selectInput("state", "Select State:",
+                  choices = sort(unique(pfw$State)),
+                  selected = sort(unique(pfw$State))[1]),
+      selectInput("year", "Select Year:",
+                  choices = sort(unique(pfw$Year)),
+                  selected = sort(unique(pfw$Year))[1])
+    ),
+    mainPanel(
+      plotOutput("histogramPlot")
+    )
+  )
+)
+
+
+server <- function(input, output, session) {
+  
+  filtered_data <- reactive({
+    pfw %>% 
+    filter(State == input$state, Year == input$year)
+    
+  })
+ 
+  output$histogramPlot <- renderPlot({
+    data <- filtered_data() 
+
+  ggplot(data, aes(x = reorder(SCI_NAME, HOW_MANY, FUN = sum), y = HOW_MANY)) + 
+  geom_bar(stat = "identity", na.rm = TRUE) +  
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
+  labs(x = "Species Scientific Name", y = "Number of Birds", title = paste("Species Count for", input$state, "(",input$year,")"))  
+  })
+}
+
+shinyApp(ui = histogram_ui, server = server)
+```

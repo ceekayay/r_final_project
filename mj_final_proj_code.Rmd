@@ -1,0 +1,107 @@
+---
+title: "r_final_project_mj"
+author: "MarcelJardeleza"
+date: "2024-11-21"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library("ggthemes")
+library(package = "readr")
+library(readxl)
+library(tibble)
+library(forcats)
+
+
+```
+
+
+#loading data
+```{r}
+
+species_names <- read_excel("./big_data/Species_Codes.xlsx")
+tibble(species_names)
+
+
+big_data <-read_csv("./big_data/PFW_all_2021_2024_May2024_Public.csv")
+tibble(big_data)
+
+```
+
+
+# cleaning data
+```{r}
+pfw <- big_data %>% 
+  mutate(date = as.Date(paste(Year, Month, Day, sep = "-"))) %>% 
+  left_join(species_names, join_by("SPECIES_CODE" == "SPECIES_CODE"))
+
+tibble(pfw)
+
+pfw_small <- pfw %>% 
+  select(Year,  SUBNATIONAL1_CODE,SPECIES_CODE,  SCI_NAME,  HOW_MANY)
+
+tibble(pfw_small)
+
+
+write_csv(pfw_small, "./big_data/pfw_2021_2024_smaller.csv")
+
+
+```
+
+
+
+
+## working on histogram
+```{r}
+
+#histogram using counts of names
+pfw_small %>% 
+  group_by(SUBNATIONAL1_CODE) %>% 
+  filter(SUBNATIONAL1_CODE == "US-MN" ,
+           Year == "2021") %>% 
+  ggplot(aes(x=SCI_NAME)) +
+  geom_histogram(stat="count",
+                 position = "stack") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+#trying to use re-order
+pfw_small %>% 
+  group_by(SUBNATIONAL1_CODE) %>% 
+  filter(SUBNATIONAL1_CODE == "US-MN" ,
+           Year == "2021") %>% 
+  ggplot(aes(x=reorder(SCI_NAME, -HOW_MANY, .desc = TRUE))) +
+  geom_histogram(stat="count") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+
+
+#graph using how many
+pfw_small %>% 
+  group_by(SUBNATIONAL1_CODE) %>% 
+  filter(SUBNATIONAL1_CODE == "US-MN" ,
+           Year == "2021") %>% 
+  ggplot(aes(x=SCI_NAME, y = HOW_MANY), na.rm = TRUE) +
+  geom_col()+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+
+#using fct_reorder
+pfw_small %>% 
+  group_by(SUBNATIONAL1_CODE) %>% 
+  filter(SUBNATIONAL1_CODE == "US-MN" ,
+           Year == "2021") %>% 
+  ggplot(aes(x = fct_reorder(SCI_NAME, HOW_MANY), y = HOW_MANY), na.rm = TRUE) + 
+  geom_bar(stat = "identity")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+

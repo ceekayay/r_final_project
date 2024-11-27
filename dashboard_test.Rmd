@@ -1,0 +1,230 @@
+---
+title: "Feeder Watch Dashboard"
+output: flexdashboard::flex_dashboard
+runtime: shiny
+---
+
+```{r global, include=FALSE, warning = FALSE}
+library("flexdashboard")
+library("tidyverse")
+library("readxl")
+library("lubridate")
+library("stringr")
+library("ggplot2")
+library("ggthemes")
+library("tigris")
+library("leaflet")
+library("viridis")
+library("shiny")
+library("sf")
+library("DT")
+
+sightings_data <- read_csv("data/PFW_2021_public.csv") %>%
+  mutate(date = as.Date(paste(Year, Month, Day, sep = "-")))
+
+species_names <- read_excel("data/Species_Codes.xlsx") %>%
+  rename_all(tolower)
+
+pfw <- readr::read_csv("./big_data/pfw_2021_2024_smaller.csv") %>%
+  rename_all(tolower) %>%
+  left_join(species_names, by = "species_code") %>%
+  mutate(common_name = primary_com_name)
+```
+Column
+-----------------------------
+
+
+```{r test_map}
+leaflet_ui <- fluidPage(
+  titlePanel("Bird Observations Map"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("year", "Observation Year:",
+                  choices = 
+                    sort(unique(pfw$year)))
+    ),
+    mainPanel(
+      leafletOutput("map")
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  
+  filtered_data <- reactive({
+    pfw %>%
+      filter(year == input$year)
+  })
+  
+  output$map <- renderLeaflet({
+    data <- filtered_data()
+    
+    unique_locations <- data %>%
+      select(latitude, longitude) %>%
+      distinct()
+    
+    leaflet(unique_locations) %>%
+  addTiles() %>%
+  addCircleMarkers(
+    ~longitude, ~latitude,
+    radius = 0.5,
+    color = "#21918c",
+    fillOpacity = 0.6,
+    popup = ~paste("Lat:", latitude, "Lon:", longitude)
+  ) %>%
+  setView(lng = mean(unique_locations$longitude, na.rm = TRUE),
+          lat = mean(unique_locations$latitude, na.rm = TRUE),
+          zoom = 4)
+    
+state_species_count <- data %>%
+  group_by(subnational1_code) %>%
+  summarize(
+    unique_species = n_distinct(species_code),
+    .groups = "drop"
+  )
+
+options(tigris_use_cache = TRUE) 
+state_boundaries <- states(cb = TRUE)
+
+state_boundaries <- state_boundaries %>%
+  mutate(subnational1_code = paste0("US-", STUSPS))
+
+state_boundaries <- state_boundaries %>%
+  left_join(state_species_count, by = "subnational1_code")%>% 
+  filter(!is.na(unique_species))
+
+palette <- colorNumeric(
+  palette = "YlGnBu",
+  domain = state_boundaries$unique_species
+)
+
+
+leaflet() %>%
+  addTiles() %>%
+  setView(
+    lng = -100,
+    lat = 50,
+    zoom = 3) %>%
+  
+  addCircleMarkers(
+    data = unique_locations,
+    ~longitude, ~latitude,
+    radius = 0.5,
+    color = "#21918c",
+    fillOpacity = 0.6,
+    popup = ~paste("Lat:", latitude, "Lon:", longitude),
+    group = "Participant Observation Points"
+  ) %>%
+
+  addPolygons(
+    data = state_boundaries,
+    fillColor = ~palette(unique_species),
+    weight = 1,
+    opacity = 1,
+    color = "white",
+    dashArray = "3",
+    fillOpacity = 0.7,
+    highlight = highlightOptions(
+      weight = 2,
+      color = "#666",
+      dashArray = "",
+      fillOpacity = 0.9,
+      bringToFront = TRUE
+    ),
+    label = ~paste0(NAME, ": ", unique_species, " unique species"),
+    labelOptions = labelOptions(
+      style = list("font-weight" = "normal", padding = "3px 8px"),
+      textsize = "15px",
+      direction = "auto"
+    ),
+    group = "Species Count by State"
+  ) %>%
+
+  addLegend(
+    pal = palette,
+    values = state_boundaries$unique_species,
+    title = "Unique Species Count",
+    position = "bottomright",
+    group = "Species Count by State"
+  ) %>%
+  addLayersControl(
+    overlayGroups = c("Participant Observation Points", "Species Count by State"),
+    options = layersControlOptions(collapsed = FALSE)
+  )
+  })
+}
+
+shinyApp(ui = leaflet_ui, server = server)
+  
+```
+
+Column
+------------------------------
+## Timeseries
+
+```{r timeseries}
+timeseries_ui <- fillPage(
+  fillCol(flex = c(NA, 1),
+  inputPanel(
+      selectInput("species", "Choose Bird Species:",
+                  choices = sort(unique(pfw$common_name)),
+                  selected = sort(unique(pfw$common_name))[1]
+    )),
+    mainPanel(
+      plotOutput("timeseriesPlot")
+    )
+  )
+)
+
+
+server <- function(input, output, session) {
+  
+  filtered_data <- reactive({
+    pfw %>% 
+    filter(common_name == input$species)
+    
+  })
+ 
+  output$timeseriesPlot <- renderPlot({
+    data <- filtered_data() 
+    
+## timeseries plot code goes here
+}
+
+shinyApp(ui = timeseries_ui, server = server)
+```
+
+### Data Table
+```{r dt}
+## dropdown for state?
+histogram_ui <- fillPage(
+  fillCol(flex = c(NA, 1),
+  inputPanel(
+      selectInput("state", "Select State:",
+                  choices = sort(unique(pfw$state)),
+                  selected = sort(unique(pfw$state))[1]
+    )),
+    mainPanel(
+      plotOutput("histogramPlot")
+    )
+  )
+)
+
+
+server <- function(input, output, session) {
+  
+  filtered_data <- reactive({
+    pfw %>% 
+    filter(state == input$species)
+    
+  })
+ 
+  output$timeseriesPlot <- renderPlot({
+    data <- filtered_data() 
+    
+## histogram code goes here
+}
+
+shinyApp(ui = histogram_ui, server = server)
+
+```

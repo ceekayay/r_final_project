@@ -58,56 +58,11 @@ pfw_25
 
 ```{r}
 
-# Shade from 2000 to 2004 and from 2010 to 2015
-shade <- data.frame(x1 = c(as.Date("2020-12-01"), 
-                            as.Date("2021-03-01"), 
-                            as.Date("2021-06-01"), 
-                            as.Date("2020-09-01"),
-                           as.Date("2021-12-01"), 
-                            as.Date("2022-03-01"), 
-                            as.Date("2022-06-01"), 
-                            as.Date("2022-09-01"), 
-                           as.Date("2022-12-01"), 
-                            as.Date("2023-03-01"), 
-                            as.Date("2023-06-01"), 
-                            as.Date("2023-09-01"),
-                           as.Date("2023-12-01"), 
-                            as.Date("2024-03-01"), 
-                            as.Date("2024-06-01"), 
-                            as.Date("2024-09-01"),
-                        ),
-                    x2 = c(as.Date("2021-02-01"),
-                            as.Date("2021-05-01"), 
-                            as.Date("2021-08-01"), 
-                            as.Date("2021-11-01"), 
-                           as.Date("2022-02-01"), 
-                            as.Date("2022-05-01"), 
-                            as.Date("2022-08-01"), 
-                            as.Date("2022-11-01"),
-                           as.Date("2023-02-01"), 
-                            as.Date("2023-05-01"), 
-                            as.Date("2023-08-01"), 
-                            as.Date("2023-11-01"),
-                           as.Date("2024-02-01"), 
-                            as.Date("2024-05-01"), 
-                            as.Date("2024-08-01"), 
-                            as.Date("2024-11-01")),
-                    min = c(-Inf, -Inf), max = c(Inf, Inf))
-
-
- 
-
-```
-
-```{r}
-
 pfw_25$date <- as.POSIXct(pfw_25$date)
 timeline_birds <- pfw_25 %>% 
   filter(scientific_name == "Junco hyemalis") %>% 
   ggplot(aes(x = date, y = daily_obs, color = american_english_name)) +
   geom_point(stat = "identity", size = 0.4, alpha = 1, colour = "cornflowerblue") +
-    geom_rect(data = shade, aes(xmin = x1, xmax = x2, ymin = min, ymax = max),
-            fill = c("lightblue", "darkseagreen2", "lightyellow","orange"), alpha = 0.2)+
   geom_smooth(span = 0.1, se = F, color = "violet", linewidth = 0.5)+
   scale_x_datetime("Month", 
                    date_labels = "%b", 

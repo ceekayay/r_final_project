@@ -1,0 +1,131 @@
+---
+title: "Timeline_plot"
+author: "Laura_Calvimontes"
+date: "2024-11-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(readxl)
+library(dplyr)
+library(broom)
+library(purrr)
+library(tidyr)
+library(forcats)
+library(ggplot2)
+library(scales)
+library(tigris)
+library(sf)
+library(forcats)
+library(leaflet)
+```
+
+```{r read data into R}
+species_names <- read_excel("./big_data/FeederWatch_Data_Dictionary.xlsx", sheet = "Species Codes", skip = 3)
+
+pfw <- readr::read_csv("./big_data/PFW_all_2021_2024_May2024_Public.csv") %>% 
+  mutate(date = as.Date(paste(Year, Month, Day, sep = "-"))) %>% 
+  left_join(species_names, join_by("SPECIES_CODE" == "species_code"))
+
+head(pfw)
+```
+
+```{r cleaning database}
+pfw_timeline_clean <- pfw %>% 
+  select(date, Month, Day, Year, VALID, HOW_MANY, scientific_name, american_english_name) %>% 
+  filter(VALID == 1)
+```
+
+```{r frequency of birds}
+#number of total observations per species 2021-204. Slice for the most abundant 25 species
+bird_frequency <- pfw_timeline_clean %>% 
+  group_by(scientific_name) %>% 
+  summarize(total_obs = sum(HOW_MANY)) %>% 
+  arrange(desc(total_obs)) %>% 
+  slice(1:25)
+
+#select the 25 most counted species from 2021 to 2024 
+pfw_25 <- bird_frequency %>% 
+    left_join(pfw_timeline_clean, join_by("scientific_name" == "scientific_name")) %>% 
+    group_by(scientific_name, american_english_name, date, Month, Day, Year) %>% 
+    summarize(daily_obs = sum(HOW_MANY))
+pfw_25
+
+
+```
+
+```{r}
+
+# Shade from 2000 to 2004 and from 2010 to 2015
+shade <- data.frame(x1 = c(as.Date("2020-12-01"), 
+                            as.Date("2021-03-01"), 
+                            as.Date("2021-06-01"), 
+                            as.Date("2020-09-01"),
+                           as.Date("2021-12-01"), 
+                            as.Date("2022-03-01"), 
+                            as.Date("2022-06-01"), 
+                            as.Date("2022-09-01"), 
+                           as.Date("2022-12-01"), 
+                            as.Date("2023-03-01"), 
+                            as.Date("2023-06-01"), 
+                            as.Date("2023-09-01"),
+                           as.Date("2023-12-01"), 
+                            as.Date("2024-03-01"), 
+                            as.Date("2024-06-01"), 
+                            as.Date("2024-09-01"),
+                        ),
+                    x2 = c(as.Date("2021-02-01"),
+                            as.Date("2021-05-01"), 
+                            as.Date("2021-08-01"), 
+                            as.Date("2021-11-01"), 
+                           as.Date("2022-02-01"), 
+                            as.Date("2022-05-01"), 
+                            as.Date("2022-08-01"), 
+                            as.Date("2022-11-01"),
+                           as.Date("2023-02-01"), 
+                            as.Date("2023-05-01"), 
+                            as.Date("2023-08-01"), 
+                            as.Date("2023-11-01"),
+                           as.Date("2024-02-01"), 
+                            as.Date("2024-05-01"), 
+                            as.Date("2024-08-01"), 
+                            as.Date("2024-11-01")),
+                    min = c(-Inf, -Inf), max = c(Inf, Inf))
+
+
+ 
+
+```
+
+```{r}
+
+pfw_25$date <- as.POSIXct(pfw_25$date)
+timeline_birds <- pfw_25 %>% 
+  filter(scientific_name == "Junco hyemalis") %>% 
+  ggplot(aes(x = date, y = daily_obs, color = american_english_name)) +
+  geom_point(stat = "identity", size = 0.4, alpha = 1, colour = "cornflowerblue") +
+    geom_rect(data = shade, aes(xmin = x1, xmax = x2, ymin = min, ymax = max),
+            fill = c("lightblue", "darkseagreen2", "lightyellow","orange"), alpha = 0.2)+
+  geom_smooth(span = 0.1, se = F, color = "violet", linewidth = 0.5)+
+  scale_x_datetime("Month", 
+                   date_labels = "%b", 
+                   date_breaks = "3 month", 
+    sec.axis = dup_axis(name = "Year", 
+                        labels = scales::label_time("%Y"), 
+                        breaks = scales::breaks_width("1 year"))) +
+theme(legend.position = "bottom", legend.title = element_blank(),
+      axis.text.x.bottom = element_text(angle = 45, hjust = 1),
+      axis.text.x.top = element_text(angle = 0)) +
+labs(title = "USA bird watching data 2021 to 2024",
+       y = "Total daily bird counts")
+
+timeline_birds
+
+
+
+```
+
+
+

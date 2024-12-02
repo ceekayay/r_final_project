@@ -4,6 +4,15 @@ output: flexdashboard::flex_dashboard
 runtime: shiny
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval = TRUE)
+```
+
+Welcome to our **FeederWatch Dashboard** for birds sighted in the United States from **2021-2024**!
+
+This dashboard has 3 elements to explore: a *map*, a *timeseries plot*, and a *histogram*. The map, in the left column, explores density of sightings across the United State, selected by study year. There are 2 layers: one that shows all participant observation points and one that shows the unique species counts by each state. The timeseries, in the top right column, explores the top 25 most frequently spotted birds seasonally for the study period, selected by bird. The histogram, in the bottom right column, explores the counts of each unique bird, selected by state and by year. 
+
+
 ```{r global, include=FALSE, warning = FALSE}
 library("flexdashboard")
 library("tidyverse")
@@ -21,18 +30,14 @@ library("sf")
 ```
 
 ```{r data}
-if (!exists("pfw")) {
-  pfw <- readRDS("pfw.rds")
-}
-
 species_names <- read_excel("./data/Species_Codes.xlsx")
 
 pfw <- readr::read_csv("./big_data/PFW_all_2021_2024_May2024_Public.csv") %>% 
-  mutate(date = as.Date(paste(Year, Month, Day, sep = "-"))) %>% 
+  mutate(date = as.Date(paste(Year, Month, Day, sep = "-")),) %>% 
   left_join(species_names, join_by("SPECIES_CODE" == "SPECIES_CODE")) %>%
   mutate(State = str_split(SUBNATIONAL1_CODE, "-",
                          simplify = TRUE)[, 2],
-       State = state.name[match(State, state.abb)]) %>%
+         State = state.name[match(State, state.abb)]) %>%
   rename_all(tolower)
 
 pfw_timeline_clean <- pfw %>% 
@@ -150,7 +155,8 @@ server <- function(input, output, session) {
         group = "Species Count by State"
       ) %>%
       addLayersControl(
-        overlayGroups = c("Participant Observation Points", "Species Count by State"),
+        overlayGroups = c("Participant Observation Points", 
+                          "Species Count by State"),
         options = layersControlOptions(collapsed = FALSE)
       )
   })
@@ -199,7 +205,8 @@ server <- function(input, output, session) {
 theme(legend.position = "bottom", legend.title = element_blank(),
       axis.text.x.bottom = element_text(angle = 45, hjust = 1),
       axis.text.x.top = element_text(angle = 0)) +
-labs(title = paste("USA bird watching data for", input$primary_com_name, "from 2021 to 2024"),
+labs(title = paste("USA bird watching data for", input$primary_com_name, 
+                   "from 2021 to 2024"),
        y = "Total daily bird counts")
 })
 }
@@ -236,12 +243,14 @@ server <- function(input, output, session) {
   })
  
   output$histogramPlot <- renderPlot({
-    data <- filtered_data() 
+    data <- filtered_data() %>%
+      filter(!sci_name == "NA")
 
   ggplot(data, aes(x = reorder(sci_name, how_many, FUN = sum), y = how_many)) + 
   geom_bar(stat = "identity", na.rm = TRUE) +  
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) + 
-  labs(x = "Species Scientific Name", y = "Number of Birds", title = paste("Species Count for", input$state, "(",input$year,")"))  
+  labs(x = "Species Scientific Name", y = "Number of Birds", 
+       title = paste("Species Count for", input$state, "(",input$year,")"))  
   })
 }
 

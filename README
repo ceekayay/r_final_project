@@ -13,7 +13,7 @@ about the feeder environment.
 Project FeederWatch is operated by the Cornell Lab of Ornithology and Birds Canada.
 
 Our dashboard features three interactive elements:
-1. A map showing 
+1. A map visualizing participation spatially across the US and species richness by state.
 2. A timeseries plot of bird sightings across the study period of 2021-2024. The user can select one of the top 25 most common birds to see their seasonal sightings.
 3. A histogram showing total counts for all birds seen. The user can select the state that they wish to see counts for, as well as the year.
 
